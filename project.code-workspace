@@ -1,0 +1,49 @@
+{
+	"folders": [
+		{
+			"path": "CFRS"
+		}
+	],
+	"settings": {
+        "workbench.colorTheme": "Visual Studio Light",
+        "diffEditor.ignoreTrimWhitespace": true,
+        "workbench.sideBar.location": "right",
+        "breadcrumbs.enabled": false,
+        "editor.renderWhitespace": "none",
+        "editor.minimap.enabled": false,
+        "workbench.activityBar.visible": true,
+        "window.menuBarVisibility": "default",
+        "editor.fastScrollSensitivity": 10,
+        "editor.mouseWheelScrollSensitivity": 2,
+        "window.zoomLevel": 0,
+        "extensions.ignoreRecommendations": true,
+        "debug.showBreakpointsInOverviewRuler": true,
+        "python.linting.pylintEnabled": false,
+        "python.linting.enabled": false,
+        "python.linting.pylamaEnabled": false,
+        "python.linting.pydocstyleEnabled": false,
+        "python.defaultInterpreterPath": "${env:PYTHON_EXECUTABLE}",
+        "telemetry.enableTelemetry": false,
+		".editor.tabCloseButton": "off",
+		".editor.tabSizing": "shrink",
+		".editor.highlightModifiedTabs": true,
+        "workbench.enableExperiments": false,
+		"editor.mouseWheelScrollSensitivity": 3,
+		"editor.folding": false,
+		"editor.glyphMargin": false,
+		"files.exclude": {
+			"**/__pycache__": true,
+			"**/.github": true,
+			"**/.vscode": true,
+			"**/*.dat": true,
+			"**/*.h5": true,
+            "**/*.npy": true
+		},
+		"editor.quickSuggestions": {"other": false,"comments": false,"strings": false},
+			"editor.trimAutoWhitespace": false,
+			"python.linting.pylintArgs": ["--disable=import-error"],
+            "python.linting.enabled": false,
+            "editor.lightbulb.enabled": false,
+            "python.languageServer": "Pylance"
+	}
+}
