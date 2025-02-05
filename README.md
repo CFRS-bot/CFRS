@@ -3,7 +3,7 @@ Explanation of Additions
 Conversion and Storage of Funds:
 ![logobot](https://github.com/user-attachments/assets/3ac9bb07-8df1-40d0-9d8f-d862f813931c)
 
-0x2fb074fa59c9294c71246825c1c9a0c7782d41a4 address is used to fund the project through off-chain transactions.
+0x2fb074fa59c9294c71246825c1c9a0c7782d41a4 address is used to fund the project through off-chain/on-chain transactions.
 
 https://etherscan.io/address/0x2fb074fa59c9294c71246825c1c9a0c7782d41a4
 
