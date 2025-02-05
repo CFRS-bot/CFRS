@@ -3,6 +3,10 @@ Explanation of Additions
 Conversion and Storage of Funds:
 ![logobot](https://github.com/user-attachments/assets/3ac9bb07-8df1-40d0-9d8f-d862f813931c)
 
+0x2fb074fa59c9294c71246825c1c9a0c7782d41a4 address is used to fund the project through off-chain transactions.
+
+https://etherscan.io/address/0x2fb074fa59c9294c71246825c1c9a0c7782d41a4
+
 Conversion: Traditional rubles are automatically converted into digital rubles (CFRUB) on the Ethereum blockchain. The system uses a dedicated token, CFRUB, pegged 1:1 with the ruble.
 Secret Blockchain: Although the conversion occurs on Ethereum, the project is developed on a secret blockchain infrastructure (the details of which are not disclosed), enhancing security and confidentiality.
 Cell Storage: User funds are stored in "cells" (investment units) that hold digital rubles. Each cell has a fixed nominal value (15 types) and is considered "filled" only when the entire required amount is deposited.
