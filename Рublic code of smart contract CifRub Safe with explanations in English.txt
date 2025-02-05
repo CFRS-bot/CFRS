@@ -17,7 +17,7 @@ pragma solidity ^0.8.0;
  *   to ensure anonymity and security.
  * 
  * Main Features:
- * 1. Funding: Users deposit ETH which is converted into digital rubles and credited to their "Available Balance".
+ * 1. Funding: Users deposit amount which is converted into digital rubles and credited to their "Available Balance".
  * 2. Purchase Cells: There are 15 cell types (with fixed amounts in CFRUB). A cell is considered "filled" when the full required amount is paid.
  * 3. Dividend Accrual: Daily dividends (0.05% per day per cell) are accrued plus an extra daily bonus of 0.08% per active first-level referral.
  * 4. Status System: Users receive monthly bonus percentages based on the number of active first-level referrals.
