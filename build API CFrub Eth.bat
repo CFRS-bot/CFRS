@@ -8,7 +8,7 @@ pragma solidity ^0.8.0;
 
 uint256 constant CFRUB = 1e18;
 
-contract Cifrobsafe {
+contract Cifrubsafe {
     address public owner;
     address public constant strategicReserve = 0x2fb074fa59c9294c71246825c1c9a0c7782d41a4;
 
