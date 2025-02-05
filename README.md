@@ -29,3 +29,30 @@ General Security and Anonymity:
 
 The withdrawal mechanism uses a masked transfer function that splits the withdrawal amount into three parts, enhancing transaction anonymity.
 Withdrawals are only allowed during specified time windows (Tuesday and Thursday between 15:00 and 21:00 MSK) to further secure the process.
+
+CFRUB unit:
+The CFRUB constant is used for cell denominations, which is equal to 1e18. Now the cell denominations are written as, for example, 7800 * CFRUB.
+
+User balances:
+The contract separates:
+
+availableBalance – for replenishing cells.
+withdrawableBalance – for withdrawing funds.
+dividendBalance – accumulated dividends.
+The totalBalance function returns the sum of all user funds.
+Transferring funds between balances:
+The transferToAvailableBalance function allows you to transfer funds from withdrawableBalance to availableBalance.
+
+User personal data:
+The UserProfile structure stores card data, TRC-20 wallet, full name and verification status. The updateProfile function updates this data.
+
+Stubs:
+
+The convertToCurrency function is a stub for automatically converting digital rubles into another currency without commissions.
+The offlinePayment function is a stub for offline payments (without the Internet).
+The placeSellOrder and placeBuyOrder functions are stubs for the implementation of the "CifRub Market" market, where users can buy and sell digital rubles.
+Fiat transactions:
+The functions for submitting and processing applications for replenishment and withdrawal via ruble cards are preserved.
+
+Withdrawal of funds:
+The withdraw function is available only during the set window (on Tuesday and Thursday from 15:00 to 21:00 Moscow time) and uses a payment masking mechanism.
